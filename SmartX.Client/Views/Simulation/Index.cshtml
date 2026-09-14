@@ -1,0 +1,376 @@
+﻿@model SmartX.Client.Models.SimulationViewModel
+
+@{
+    ViewData["Title"] =
+        "Telemetry Simulation";
+}
+
+<div class="container mt-4">
+
+    <div class="d-flex
+                justify-content-between
+                align-items-center
+                mb-4">
+
+        <div>
+            <h2>
+                Smart-X Telemetry Simulation
+            </h2>
+
+            <p class="text-muted">
+                Generate, transmit and measure
+                simulated IoT telemetry.
+            </p>
+        </div>
+
+        <div>
+
+            @if (Model.ApiOnline)
+            {
+                <span class="badge
+                                 bg-success
+                                 fs-6">
+
+                    ● API Online
+
+                </span>
+            }
+            else
+            {
+                <span class="badge
+                                 bg-danger
+                                 fs-6">
+
+                    ● API Offline
+
+                </span>
+            }
+
+        </div>
+
+    </div>
+
+
+    <div class="card shadow-sm mb-4">
+
+        <div class="card-header">
+            <strong>
+                Telemetry Generator
+            </strong>
+        </div>
+
+        <div class="card-body">
+
+            <form asp-action="Generate"
+                  method="post">
+
+                <div asp-validation-summary="ModelOnly"
+                     class="text-danger">
+                </div>
+
+
+                <div class="row g-3">
+
+
+                    <div class="col-md-6">
+
+                        <label asp-for="SensorId"
+                               class="form-label">
+                            Sensor
+                        </label>
+
+                        <select asp-for="SensorId"
+                                class="form-select">
+
+                            <option value="">
+                                Select sensor
+                            </option>
+
+                            @foreach (
+                                                        var sensor
+                                                        in Model.Sensors)
+                            {
+                                <option value="@sensor.Id">
+                                    @sensor.DeviceName
+                                    -
+                                    @sensor.Zone
+                                </option>
+                            }
+
+                        </select>
+
+                        <span asp-validation-for="SensorId"
+                              class="text-danger">
+                        </span>
+
+                    </div>
+
+
+                    <div class="col-md-6">
+
+                        <label asp-for="MetricName"
+                               class="form-label">
+                            Metric
+                        </label>
+
+                        <select asp-for="MetricName"
+                                class="form-select">
+
+                            <option value="Temperature">
+                                Temperature
+                            </option>
+
+                            <option value="Humidity">
+                                Humidity
+                            </option>
+
+                            <option value="Pressure">
+                                Pressure
+                            </option>
+
+                            <option value="Power">
+                                Power
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <div class="col-md-4">
+
+                        <label asp-for="Unit"
+                               class="form-label">
+                            Unit
+                        </label>
+
+                        <input asp-for="Unit"
+                               class="form-control" />
+
+                    </div>
+
+
+                    <div class="col-md-4">
+
+                        <label asp-for="MinimumValue"
+                               class="form-label">
+                            Minimum Value
+                        </label>
+
+                        <input asp-for="MinimumValue"
+                               class="form-control" />
+
+                    </div>
+
+
+                    <div class="col-md-4">
+
+                        <label asp-for="MaximumValue"
+                               class="form-label">
+                            Maximum Value
+                        </label>
+
+                        <input asp-for="MaximumValue"
+                               class="form-control" />
+
+                    </div>
+
+
+                    <div class="col-md-6">
+
+                        <label asp-for="BatchSize"
+                               class="form-label">
+                            Batch Size
+                        </label>
+
+                        <select asp-for="BatchSize"
+                                class="form-select">
+
+                            <option value="1">
+                                Single Reading
+                            </option>
+
+                            <option value="100">
+                                100 Records
+                            </option>
+
+                            <option value="1000">
+                                1,000 Records
+                            </option>
+
+                            <option value="10000">
+                                10,000 Records
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <div class="col-md-6
+                                d-flex
+                                align-items-end">
+
+                        <button type="submit"
+                                class="btn
+                                       btn-primary
+                                       w-100">
+
+                            Generate & Transmit
+
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </form>
+
+        </div>
+
+    </div>
+
+
+    @if (Model.Generated > 0)
+    {
+        <div class="card shadow-sm mb-4">
+
+            <div class="card-header">
+                <strong>
+                    Transmission Results
+                </strong>
+            </div>
+
+            <div class="card-body">
+
+                <div class="row g-3">
+
+
+                    <div class="col-md-3">
+                        <div class="border rounded p-3">
+                            <small class="text-muted">
+                                Generated
+                            </small>
+
+                            <h3>
+                                @Model.Generated
+                            </h3>
+                        </div>
+                    </div>
+
+
+                    <div class="col-md-3">
+                        <div class="border rounded p-3">
+                            <small class="text-muted">
+                                Received
+                            </small>
+
+                            <h3>
+                                @Model.Received
+                            </h3>
+                        </div>
+                    </div>
+
+
+                    <div class="col-md-3">
+                        <div class="border rounded p-3">
+                            <small class="text-muted">
+                                Stored
+                            </small>
+
+                            <h3>
+                                @Model.Stored
+                            </h3>
+                        </div>
+                    </div>
+
+
+                    <div class="col-md-3">
+                        <div class="border rounded p-3">
+                            <small class="text-muted">
+                                Anomalies
+                            </small>
+
+                            <h3>
+                                @Model.AnomaliesDetected
+                            </h3>
+                        </div>
+                    </div>
+
+                </div>
+
+
+                <hr />
+
+
+                <div class="row g-3">
+
+                    <div class="col-md-4">
+
+                        <strong>
+                            Generation Time
+                        </strong>
+
+                        <p class="fs-5">
+                            @Model.GenerationTimeMs
+                            .ToString("0.000")
+                            ms
+                        </p>
+
+                    </div>
+
+
+                    <div class="col-md-4">
+
+                        <strong>
+                            Processing Time
+                        </strong>
+
+                        <p class="fs-5">
+                            @Model.ProcessingTimeMs
+                            .ToString("0.000")
+                            ms
+                        </p>
+
+                    </div>
+
+
+                    <div class="col-md-4">
+
+                        <strong>
+                            Total Time
+                        </strong>
+
+                        <p class="fs-5">
+                            @Model.TotalTimeMs
+                            .ToString("0.000")
+                            ms
+                        </p>
+
+                    </div>
+
+                </div>
+
+
+                @if (Model.LastReading.HasValue)
+                {
+                    <div class="alert
+                                        alert-info
+                                        mb-0">
+
+                        <strong>
+                            Last telemetry reading:
+                        </strong>
+
+                        @Model.LastReading
+                        @Model.Unit
+
+                    </div>
+                }
+
+            </div>
+
+        </div>
+    }
+
+</div>
