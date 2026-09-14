@@ -1,0 +1,106 @@
+﻿@model SmartX.Client.Models.FileUploadViewModel
+
+@{
+    ViewData["Title"] = "Upload Sensor File";
+}
+
+<div class="container mt-4">
+
+    <div class="row justify-content-center">
+
+        <div class="col-lg-7">
+
+            <div class="card shadow-sm">
+
+                <div class="card-header">
+
+                    <h3 class="mb-0">
+                        Upload Diagnostic File
+                    </h3>
+
+                    <small class="text-muted">
+                        Attach logs, telemetry files or images
+                        to this sensor.
+                    </small>
+
+                </div>
+
+                <div class="card-body">
+
+                    <form asp-action="Upload"
+                          method="post"
+                          enctype="multipart/form-data">
+
+                        <input asp-for="SensorId"
+                               type="hidden" />
+
+                        <div asp-validation-summary="ModelOnly"
+                             class="alert alert-danger">
+                        </div>
+
+                        <div class="mb-3">
+
+                            <label asp-for="File"
+                                   class="form-label">
+                                File
+                            </label>
+
+                            <input asp-for="File"
+                                   type="file"
+                                   class="form-control"
+                                   accept=".txt,.log,.csv,.json,.jpg,.jpeg,.png" />
+
+                            <div class="form-text">
+                                Supported formats:
+                                TXT, LOG, CSV, JSON,
+                                JPG and PNG.
+                                Maximum size: 5 MB.
+                            </div>
+
+                            <span asp-validation-for="File"
+                                  class="text-danger">
+                            </span>
+
+                        </div>
+
+                        <div class="mb-4">
+
+                            <label asp-for="Description"
+                                   class="form-label">
+                                Description
+                            </label>
+
+                            <textarea asp-for="Description"
+                                      class="form-control"
+                                      rows="3"
+                                      placeholder="Optional description of this file">
+                            </textarea>
+
+                        </div>
+
+                        <button type="submit"
+                                class="btn btn-primary">
+                            Upload File
+                        </button>
+
+                        <a asp-action="Index"
+                           class="btn btn-outline-secondary">
+                            Cancel
+                        </a>
+
+                    </form>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+@section Scripts
+{
+    <partial name="_ValidationScriptsPartial" />
+}

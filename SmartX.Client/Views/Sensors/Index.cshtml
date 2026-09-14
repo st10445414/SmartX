@@ -1,0 +1,161 @@
+﻿@model IEnumerable<SmartX.Client.Models.SensorViewModel>
+
+@{
+    ViewData["Title"] = "Sensors";
+}
+
+<div class="container mt-4">
+
+    <div class="d-flex justify-content-between
+                align-items-center mb-4">
+
+        <div>
+            <h2>Registered Sensors</h2>
+
+            <p class="text-muted mb-0">
+                Devices connected to the
+                Smart-X telemetry gateway.
+            </p>
+        </div>
+
+        <a asp-action="Register"
+           class="btn btn-primary">
+            + Register Sensor
+        </a>
+
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success">
+            @TempData["SuccessMessage"]
+        </div>
+    }
+
+    @if (!Model.Any())
+    {
+        <div class="alert alert-info">
+
+            No sensors have been registered yet.
+
+            <a asp-action="Register">
+                Register the first sensor.
+            </a>
+
+        </div>
+    }
+
+    else
+    {
+        <div class="card shadow-sm">
+
+            <div class="table-responsive">
+
+                <table class="table table-hover
+                                  align-middle mb-0">
+
+                    <thead>
+                        <tr>
+                            <th>Device</th>
+                            <th>MAC Address</th>
+                            <th>Location</th>
+                            <th>Zone</th>
+                            <th>Category</th>
+                            <th>Status</th>
+                            <th>Last Seen</th>
+                            <th>Actions</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        @foreach (var sensor in Model)
+                        {
+                            <tr>
+
+                                <td>
+                                    <strong>
+                                        @sensor.DeviceName
+                                    </strong>
+                                </td>
+
+                                <td>
+                                    <code>
+                                        @sensor.MacAddress
+                                    </code>
+                                </td>
+
+                                <td>
+                                    @sensor.DeploymentLocation
+                                </td>
+
+                                <td>
+                                    @sensor.Zone
+                                </td>
+
+                                <td>
+                                    @sensor.Category
+                                </td>
+
+                                <td>
+
+                                    @if (sensor.Status ==
+                                                                "Connected")
+                                    {
+                                        <span class="badge
+                                                        bg-success">
+                                            Connected
+                                        </span>
+                                    }
+
+                                    else if (sensor.Status ==
+                                    "Warning")
+                                    {
+                                        <span class="badge
+                                                        bg-warning
+                                                        text-dark">
+                                            Warning
+                                        </span>
+                                    }
+
+                                    else
+                                    {
+                                        <span class="badge
+                                                        bg-danger">
+                                            Disconnected
+                                        </span>
+                                    }
+
+                                </td>
+
+                                <td>
+                                    @sensor.LastSeen
+                                    .ToLocalTime()
+                                    .ToString(
+                                    "dd MMM yyyy HH:mm")
+                                </td>
+                                
+                                <td>
+
+                                    <a asp-action="Upload"
+                                       asp-route-sensorId="@sensor.Id"
+                                       class="btn btn-sm btn-outline-primary">
+
+                                        Upload File
+
+                                    </a>
+
+                                </td>
+                            </tr>
+                        }
+
+                    </tbody>
+
+                </table>
+
+            </div>
+
+        </div>
+    }
+
+</div>
