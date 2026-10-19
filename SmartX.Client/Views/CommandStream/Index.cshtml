@@ -1,0 +1,711 @@
+﻿@model SmartX.Client.Models.CommandStreamViewModel
+
+@{
+    ViewData["Title"] = "Real-Time Command Stream";
+}
+
+<div class="container-fluid mt-4">
+
+    <div class="d-flex justify-content-between
+                align-items-center flex-wrap gap-3 mb-4">
+
+        <div>
+            <h2>Real-Time Command Stream &amp; History</h2>
+            <p class="text-muted mb-0">
+                Smart-X Part 2: Live device monitoring
+                and command management.
+            </p>
+        </div>
+
+        <span class="badge bg-primary fs-6">
+            Part 2 Active
+        </span>
+    </div>
+
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-warning">
+            @Model.ErrorMessage
+        </div>
+    }
+
+    <!-- Dashboard Summary -->
+
+    <div class="row g-3 mb-4">
+
+        <div class="col-md-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h6 class="text-muted">Registered Devices</h6>
+                    <h2>@Model.TotalSensors</h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h6 class="text-muted">Connected</h6>
+                    <h2 class="text-success">
+                        @Model.ConnectedSensors
+                    </h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h6 class="text-muted">Warnings</h6>
+                    <h2 class="text-warning">
+                        @Model.WarningSensors
+                    </h2>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h6 class="text-muted">Disconnected</h6>
+                    <h2 class="text-danger">
+                        @Model.DisconnectedSensors
+                    </h2>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+
+
+    <!-- Device Search and Filters -->
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">
+            <strong>Search and Filter Devices</strong>
+        </div>
+
+        <div class="card-body">
+            <form asp-controller="CommandStream"
+                  asp-action="Index"
+                  method="get">
+
+                <div class="row g-3">
+
+                    <div class="col-md-4">
+                        <label class="form-label">Search</label>
+                        <input type="text"
+                               name="searchTerm"
+                               value="@Model.SearchTerm"
+                               class="form-control"
+                               placeholder="Name or MAC address" />
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label">Category</label>
+
+                        <select name="category" class="form-select">
+                            <option value="">All categories</option>
+
+                            @foreach (var category in Model.AvailableCategories)
+                            {
+                                <option value="@category"
+                                        selected="@(Model.SelectedCategory == category)">
+                                    @category
+                                </option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label">Alert Status</label>
+
+                        <select name="alertFilter" class="form-select">
+                            <option value="All"
+                                    selected="@(Model.SelectedAlertFilter == "All")">
+                                All devices
+                            </option>
+
+                            <option value="Active"
+                                    selected="@(Model.SelectedAlertFilter == "Active")">
+                                Active alerts
+                            </option>
+
+                            <option value="None"
+                                    selected="@(Model.SelectedAlertFilter == "None")">
+                                No active alerts
+                            </option>
+                        </select>
+                    </div>
+
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit"
+                                class="btn btn-primary w-100">
+                            Filter
+                        </button>
+                    </div>
+
+                </div>
+
+                <a asp-controller="CommandStream"
+                   asp-action="Index"
+                   class="btn btn-link mt-3">
+                    Clear Filters
+                </a>
+            </form>
+        </div>
+    </div>
+
+
+
+
+    <!-- Device Management -->
+
+    <div class="card shadow-sm mb-4">
+
+        <div class="card-header">
+            <strong>Live Device Overview</strong>
+        </div>
+
+        <div class="card-body">
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+
+                    <thead>
+                        <tr>
+                            <th>Device</th>
+                            <th>MAC Address</th>
+                            <th>Category</th>
+                            <th>Zone</th>
+                            <th>Status</th>
+                            <th>Details</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+
+                        @foreach (var sensor in Model.Sensors)
+                        {
+                            <tr>
+                                <td>@sensor.DeviceName</td>
+
+                                <td>
+                                    <code>@sensor.MacAddress</code>
+                                </td>
+
+                                <td>@sensor.Category</td>
+
+                                <td>@sensor.Zone</td>
+
+                                <td>
+                                    @if (sensor.Status == "Connected")
+                                    {
+                                        <span class="badge bg-success">
+                                            Connected
+                                        </span>
+                                    }
+                                    else if (sensor.Status == "Warning")
+                                    {
+                                        <span class="badge bg-warning text-dark">
+                                            Warning
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger">
+                                            Disconnected
+                                        </span>
+                                    }
+                                </td>
+
+                               
+                                <td>
+                                    <a asp-controller="DeviceDetails"
+                                       asp-action="Index"
+                                       asp-route-macAddress="@sensor.MacAddress"
+                                       class="btn btn-sm btn-outline-primary">
+                                        View Details
+                                    </a>
+                                </td>
+
+                            </tr>
+                        }
+
+                    </tbody>
+
+                </table>
+            </div>
+
+            @if (!Model.Sensors.Any())
+            {
+                <div class="alert alert-info mb-0">
+                    No registered devices are available.
+                    Register a sensor in the Part 1 module
+                    to begin monitoring.
+                </div>
+            }
+
+        </div>
+    </div>
+
+
+
+    <!-- Command Management -->
+    @if (TempData["Success"] != null)
+    {
+        <div class="alert alert-success">
+            @TempData["Success"]
+        </div>
+    }
+
+    @if (TempData["Error"] != null)
+    {
+        <div class="alert alert-danger">
+            @TempData["Error"]
+        </div>
+    }
+
+    <div class="row g-4 mb-4">
+
+        <!-- Submit Command -->
+
+        <div class="col-lg-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header">
+                    <strong>Submit Device Command</strong>
+                </div>
+
+                <div class="card-body">
+                    <form asp-controller="CommandStream"
+                          asp-action="Enqueue"
+                          method="post">
+
+                        @Html.AntiForgeryToken()
+
+                        <div class="mb-3">
+                            <label class="form-label">
+                                Select Sensor
+                            </label>
+
+                            <select asp-for="NewCommand.SensorId"
+                                    class="form-select" required>
+
+                                <option value="">
+                                    Select a registered sensor
+                                </option>
+
+                                @foreach (var sensor in Model.Sensors)
+                                {
+                                    <option value="@sensor.Id">
+                                        @sensor.DeviceName
+                                        (@sensor.MacAddress)
+                                    </option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">
+                                Device Action
+                            </label>
+
+                            <select asp-for="NewCommand.Action"
+                                    class="form-select">
+
+                                <option value="Pump">Pump</option>
+                                <option value="Valve">Valve</option>
+                                <option value="Relay">Relay</option>
+                                <option value="EmergencyShutdown">
+                                    Emergency Shutdown
+                                </option>
+                            </select>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label">
+                                Command Value
+                            </label>
+
+                            <select asp-for="NewCommand.Value"
+                                    class="form-select">
+
+                                <option value="ON">ON</option>
+                                <option value="OFF">OFF</option>
+                            </select>
+                        </div>
+
+                        <div class="form-check mb-3">
+                            <input asp-for="NewCommand.IsCritical"
+                                   class="form-check-input" />
+
+                            <label asp-for="NewCommand.IsCritical"
+                                   class="form-check-label">
+                                Critical Priority
+                            </label>
+                        </div>
+
+                        <button type="submit"
+                                class="btn btn-primary w-100">
+                            Queue Command
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Queue Processing -->
+
+        <div class="col-lg-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-header">
+                    <strong>Queue Processing &amp; Undo</strong>
+                </div>
+
+                <div class="card-body">
+
+                    <div class="row g-3 mb-4">
+                        <div class="col-6">
+                            <div class="border rounded p-3">
+                                <small>Normal Queue</small>
+                                <h3>
+                                    @Model.CommandStatus.NormalQueueCount
+                                </h3>
+                            </div>
+                        </div>
+
+                        <div class="col-6">
+                            <div class="border rounded p-3">
+                                <small>Critical Queue</small>
+                                <h3 class="text-danger">
+                                    @Model.CommandStatus.CriticalQueueCount
+                                </h3>
+                            </div>
+                        </div>
+
+                        <div class="col-6">
+                            <div class="border rounded p-3">
+                                <small>Processed</small>
+                                <h3>
+                                    @Model.CommandStatus.ProcessedCount
+                                </h3>
+                            </div>
+                        </div>
+
+                        <div class="col-6">
+                            <div class="border rounded p-3">
+                                <small>Undo Available</small>
+                                <h3>
+                                    @Model.CommandStatus.UndoCount
+                                </h3>
+                            </div>
+                        </div>
+                    </div>
+
+                    <form asp-controller="CommandStream"
+                          asp-action="ProcessNext"
+                          method="post" class="mb-3">
+
+                        @Html.AntiForgeryToken()
+
+                        <button type="submit"
+                                class="btn btn-success w-100"
+                                disabled="@(Model.CommandStatus.NormalQueueCount +
+                                                                Model.CommandStatus.CriticalQueueCount == 0)">
+                            Process Next Command
+                        </button>
+                    </form>
+
+                    <form asp-controller="CommandStream"
+                          asp-action="Undo"
+                          method="post">
+
+                        @Html.AntiForgeryToken()
+
+                        <button type="submit"
+                                class="btn btn-outline-warning w-100"
+                                disabled="@(Model.CommandStatus.UndoCount == 0)">
+                            Undo Last Command
+                        </button>
+                    </form>
+
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Command History -->
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">
+            <strong>Recent Command History</strong>
+        </div>
+
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>Sensor ID</th>
+                            <th>Action</th>
+                            <th>Value</th>
+                            <th>Priority</th>
+                            <th>Status</th>
+                            <th>Processed At</th>
+                        </tr>
+                    </thead>
+
+                    <tbody>
+                        @foreach (var command in
+                                                Model.CommandStatus.RecentCommands)
+                        {
+                            <tr>
+                                <td>@command.SensorId</td>
+                                <td>@command.Action</td>
+                                <td>@command.Value</td>
+                                <td>
+                                    @if (command.IsCritical)
+                                    {
+                                        <span class="badge bg-danger">
+                                            Critical
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-secondary">
+                                            Normal
+                                        </span>
+                                    }
+                            </td>
+                            <td>@command.Status</td>
+                            <td>
+                                @(command.ProcessedAt?.ToLocalTime()
+                                                                .ToString("dd MMM yyyy HH:mm:ss")
+                                                                ?? "Pending")
+                            </td>
+                        </tr>
+                                                }
+                    </tbody>
+                </table>
+            </div>
+
+            @if (!Model.CommandStatus.RecentCommands.Any())
+            {
+                <p class="text-muted mb-0">
+                    No commands have been processed yet.
+                </p>
+            }
+        </div>
+    </div>
+
+
+    <!-- Automatic Active Alerts -->
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">
+            <strong>Automatically Detected Alerts</strong>
+            <span class="badge bg-danger ms-2">
+                @Model.ActiveAlerts.Count Active
+            </span>
+        </div>
+
+        <div class="card-body">
+
+            @if (Model.ActiveAlerts.Any())
+            {
+                @foreach (var alert in Model.ActiveAlerts)
+                {
+                    <div class="alert alert-danger mb-2">
+                        <strong>Active Sensor Alert:</strong>
+                        @alert
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="alert alert-success mb-0">
+                    No active telemetry alerts detected.
+                </div>
+            }
+
+        </div>
+    </div>
+
+
+    <!-- Predictive Suggestions -->
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header d-flex justify-content-between">
+            <strong>Automated Insights &amp; Suggested Actions</strong>
+            <span class="badge bg-primary">
+                @Model.Suggestions.Count Suggestions
+            </span>
+        </div>
+
+        <div class="card-body">
+
+            @if (!Model.Suggestions.Any())
+            {
+                <div class="alert alert-success mb-0">
+                    No current telemetry conditions require
+                    a suggested action.
+                </div>
+            }
+            else
+            {
+                <div class="row g-3">
+
+                    @foreach (var suggestion in Model.Suggestions)
+                    {
+                        <div class="col-lg-6">
+                            <div class="card h-100 border">
+
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between
+                                                    align-items-start mb-2">
+
+                                        <h5>@suggestion.Title</h5>
+
+                                        @if (suggestion.Severity == "Critical")
+                                        {
+                                            <span class="badge bg-danger">
+                                                Critical
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-warning text-dark">
+                                                Warning
+                                            </span>
+                                        }
+                                    </div>
+
+                                    <p class="text-muted">
+                                        @suggestion.DeviceName
+                                        (Sensor @suggestion.SensorId)
+                                    </p>
+
+                                    <p>@suggestion.Reason</p>
+
+                                    <p>
+                                        <strong>Rule-based ranking:</strong>
+                                        @suggestion.ConfidenceScore / 100
+                                    </p>
+
+                                    <form asp-controller="CommandStream"
+                                          asp-action="Enqueue"
+                                          method="post">
+
+                                        @Html.AntiForgeryToken()
+
+                                        <input type="hidden"
+                                               name="NewCommand.SensorId"
+                                               value="@suggestion.SensorId" />
+
+                                        <input type="hidden"
+                                               name="NewCommand.Action"
+                                               value="@suggestion.Action" />
+
+                                        <input type="hidden"
+                                               name="NewCommand.Value"
+                                               value="@suggestion.Value" />
+
+                                        <input type="hidden"
+                                               name="NewCommand.IsCritical"
+                                               value="false" />
+
+                                        <button type="submit"
+                                                class="btn btn-outline-primary">
+                                            Queue Suggested Action:
+                                            @suggestion.Action
+                                            @suggestion.Value
+                                        </button>
+                                    </form>
+
+                                    <small class="text-muted d-block mt-2">
+                                        Review the device before executing.
+                                        This action will only be queued.
+                                    </small>
+                                </div>
+
+                            </div>
+                        </div>
+                    }
+
+                </div>
+            }
+
+        </div>
+    </div>
+
+
+
+    <!-- Current Device States -->
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">
+            <strong>Current Simulated Device States</strong>
+        </div>
+
+        <div class="card-body">
+
+            @if (Model.CommandStatus.DeviceStates.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>Sensor / Action</th>
+                                <th>Current State</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            @foreach (var state in
+                                                    Model.CommandStatus.DeviceStates)
+                            {
+                                <tr>
+                                    <td>@state.Key</td>
+                                    <td>
+                                        <span class="badge bg-info text-dark">
+                                            @state.Value
+                                        </span>
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <p class="text-muted mb-0">
+                    No device commands have been executed.
+                </p>
+            }
+
+        </div>
+    </div>
+
+
+    <script>
+        // Refresh dashboard data every 10 seconds,
+        // but avoid interrupting a user filling in a form.
+        setInterval(function () {
+            const active = document.activeElement;
+
+            const editing =
+                active &&
+                ["INPUT", "SELECT", "TEXTAREA"].includes(active.tagName);
+
+            if (!editing && document.visibilityState === "visible") {
+                window.location.reload();
+            }
+        }, 10000);
+    </script>
+
+
+
+</div>

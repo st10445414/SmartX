@@ -20,6 +20,16 @@ builder.Services.AddHttpClient<
                 "https://localhost:7179/");
     });
 
+
+builder.Services.AddHttpClient<
+    ICommandApiService,
+    CommandApiService>(client =>
+    {
+        client.BaseAddress =
+            new Uri("https://localhost:7179/");
+    });
+
+
 builder.Services
     .AddHttpClient<
         ISimulationApiService,
@@ -30,6 +40,34 @@ builder.Services
                 new Uri(
                     "https://localhost:7179/");
         });
+
+
+builder.Services.AddHttpClient<
+    IInsightsApiService,
+    InsightsApiService>(client =>
+    {
+        client.BaseAddress =
+            new Uri("https://localhost:7179/");
+    });
+
+
+builder.Services.AddHttpClient<
+    IActiveAlertApiService,
+    ActiveAlertApiService>(client =>
+    {
+        client.BaseAddress =
+            new Uri("https://localhost:7179/");
+    });
+
+
+builder.Services.AddHttpClient<
+    IDeviceDetailsApiService,
+    DeviceDetailsApiService>(client =>
+    {
+        client.BaseAddress =
+            new Uri("https://localhost:7179/");
+    });
+
 
 var app = builder.Build();
 

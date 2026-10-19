@@ -1,0 +1,150 @@
+﻿@model SmartX.Client.Models.DeviceDetailsViewModel
+
+@{
+    ViewData["Title"] = "Device Details";
+}
+
+<div class="container mt-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2>Device Details</h2>
+            <p class="text-muted mb-0">
+                MAC-address lookup and chronological telemetry history
+            </p>
+        </div>
+
+        <a asp-controller="CommandStream"
+           asp-action="Index"
+           class="btn btn-outline-secondary">
+            Back to Command Stream
+        </a>
+    </div>
+
+    <!-- Device Information -->
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">
+            <strong>Registered Device Information</strong>
+        </div>
+
+        <div class="card-body">
+            <div class="row g-3">
+
+                <div class="col-md-6">
+                    <strong>Device Name:</strong>
+                    @Model.DeviceName
+                </div>
+
+                <div class="col-md-6">
+                    <strong>Sensor ID:</strong>
+                    @Model.SensorId
+                </div>
+
+                <div class="col-md-6">
+                    <strong>MAC Address:</strong>
+                    @Model.MacAddress
+                </div>
+
+                <div class="col-md-6">
+                    <strong>Category:</strong>
+                    @Model.Category
+                </div>
+
+                <div class="col-md-6">
+                    <strong>Zone:</strong>
+                    @Model.Zone
+                </div>
+
+                <div class="col-md-6">
+                    <strong>Deployment Location:</strong>
+                    @Model.DeploymentLocation
+                </div>
+
+                <div class="col-md-6">
+                    <strong>Status:</strong>
+                    <span class="badge bg-primary">
+                        @Model.Status
+                    </span>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <!-- Telemetry History -->
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header d-flex justify-content-between">
+            <strong>Chronological Telemetry History</strong>
+
+            <span class="badge bg-secondary">
+                @Model.TelemetryHistory.Count Readings
+            </span>
+        </div>
+
+        <div class="card-body">
+
+            @if (Model.TelemetryHistory.Any())
+            {
+                <div class="table-responsive">
+                    <table class="table table-striped table-hover">
+                        <thead>
+                            <tr>
+                                <th>Timestamp (UTC)</th>
+                                <th>Metric</th>
+                                <th>Value</th>
+                                <th>Unit</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            @foreach (var reading in Model.TelemetryHistory)
+                            {
+                                <tr>
+                                    <td>
+                                        @reading.Timestamp.ToString(
+                                        "yyyy-MM-dd HH:mm:ss")
+                            </td>
+
+                            <td>@reading.MetricName</td>
+
+                            <td>
+                                @reading.Value.ToString("F2")
+                            </td>
+
+                            <td>@reading.Unit</td>
+
+                            <td>
+                                @if (reading.IsAnomaly)
+                                        {
+                                            <span class="badge bg-danger">
+                                                Anomaly
+                                            </span>
+                                        }
+                                        else
+                                        {
+                                            <span class="badge bg-success">
+                                                Normal
+                                            </span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            }
+            else
+            {
+                <div class="alert alert-info">
+                    No telemetry readings are available
+                    for this device yet.
+                </div>
+            }
+
+        </div>
+    </div>
+
+</div>

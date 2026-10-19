@@ -26,28 +26,26 @@ namespace SmartX.Api.Controllers
         private readonly TypedTelemetryStore
             _typedTelemetryStore;
 
+        private readonly TelemetryQueueService _telemetryQueueService;
+
+
+
         public TelemetryController(
             ITelemetryRepository telemetryRepository,
             ISensorRepository sensorRepository,
             TelemetryValidationService validationService,
             TelemetryHistoryService historyService,
-            TypedTelemetryStore typedTelemetryStore)
+            TypedTelemetryStore typedTelemetryStore,
+            TelemetryQueueService telemetryQueueService)
         {
-            _telemetryRepository =
-                telemetryRepository;
-
-            _sensorRepository =
-                sensorRepository;
-
-            _validationService =
-                validationService;
-
-            _historyService =
-                historyService;
-
-            _typedTelemetryStore =
-                typedTelemetryStore;
+            _telemetryRepository = telemetryRepository;
+            _sensorRepository = sensorRepository;
+            _validationService = validationService;
+            _historyService = historyService;
+            _typedTelemetryStore = typedTelemetryStore;
+            _telemetryQueueService = telemetryQueueService;
         }
+
 
         [HttpPost("actuator")]
         public async Task<IActionResult>
@@ -409,9 +407,11 @@ namespace SmartX.Api.Controllers
                 });
         }
 
+
+
         [HttpPost("batch")]
         public async Task<IActionResult> SubmitBatchTelemetry(
-    TelemetryBatchRequest request)
+        TelemetryBatchRequest request)
         {
             if (request.BatchSize < 1 ||
                 request.BatchSize > 10000)
@@ -423,8 +423,9 @@ namespace SmartX.Api.Controllers
                 });
             }
 
-            if (request.MaximumValue <=
-                request.MinimumValue)
+            if (!double.IsFinite(request.MinimumValue) ||
+                !double.IsFinite(request.MaximumValue) ||
+                request.MaximumValue <= request.MinimumValue)
             {
                 return BadRequest(new
                 {
@@ -433,148 +434,145 @@ namespace SmartX.Api.Controllers
                 });
             }
 
-            var sensor =
-                await _sensorRepository
-                    .GetByIdAsync(request.SensorId);
+            if (string.IsNullOrWhiteSpace(request.MetricName) ||
+                string.IsNullOrWhiteSpace(request.Unit))
+            {
+                return BadRequest(new
+                {
+                    message = "Metric name and unit are required."
+                });
+            }
+
+            var sensor = await _sensorRepository
+                .GetByIdAsync(request.SensorId);
 
             if (sensor == null)
             {
                 return NotFound(new
                 {
-                    message =
-                        "Sensor could not be found."
+                    message = "Sensor could not be found."
                 });
             }
 
-            var totalStopwatch =
-                Stopwatch.StartNew();
+            var totalStopwatch = Stopwatch.StartNew();
+            var generationStopwatch = Stopwatch.StartNew();
 
-            var generationStopwatch =
-                Stopwatch.StartNew();
+            var random = new Random();
 
-            var random =
-                new Random();
+            var packets = new List<TelemetryPacket<double>>(
+                request.BatchSize);
 
-            var packets =
-                new List<TelemetryPacket<double>>(
-                    request.BatchSize);
-
-            for (int i = 0;
-                 i < request.BatchSize;
-                 i++)
+            for (int i = 0; i < request.BatchSize; i++)
             {
-                var value =
+                double value =
                     request.MinimumValue +
                     random.NextDouble() *
-                    (request.MaximumValue -
-                     request.MinimumValue);
+                    (request.MaximumValue - request.MinimumValue);
 
-                var packet =
-                    new TelemetryPacket<double>
-                    {
-                        SensorId =
-                            request.SensorId,
-
-                        MetricName =
-                            request.MetricName,
-
-                        Value =
-                            Math.Round(value, 2),
-
-                        Unit =
-                            request.Unit,
-
-                        Timestamp =
-                            DateTime.UtcNow
-                                .AddMilliseconds(i)
-                    };
-
-                packets.Add(packet);
+                packets.Add(new TelemetryPacket<double>
+                {
+                    SensorId = request.SensorId,
+                    MetricName = request.MetricName,
+                    Value = Math.Round(value, 2),
+                    Unit = request.Unit,
+                    Timestamp = DateTime.UtcNow
+                        .AddMilliseconds(i)
+                });
             }
 
             generationStopwatch.Stop();
 
+            var processingStopwatch = Stopwatch.StartNew();
 
-            var processingStopwatch =
-                Stopwatch.StartNew();
+            var pendingResults =
+                new List<Task<TelemetryRecord>>();
 
-            int stored = 0;
-            int anomalies = 0;
-
+            // Queue every generated packet.
             foreach (var packet in packets)
             {
                 _typedTelemetryStore.Add(packet);
 
-                var record =
-                    _validationService
-                        .Validate(packet);
+                var ingestionRequest =
+                    new TelemetryIngestionRequest
+                    {
+                        SensorId = packet.SensorId,
+                        MetricName = packet.MetricName,
+                        Value = packet.Value,
+                        Unit = packet.Unit,
+                        Timestamp = packet.Timestamp
+                    };
 
-                await _telemetryRepository
-                    .AddAsync(record);
+                pendingResults.Add(
+                    _telemetryQueueService.EnqueueAndWaitAsync(
+                        ingestionRequest));
+            }
 
-                stored++;
+            // Wait until the background worker has stored
+            // all readings from this batch.
+            TelemetryRecord[] storedRecords;
 
-                if (record.IsAnomaly)
+            try
+            {
+                storedRecords =
+                    await Task.WhenAll(pendingResults);
+            }
+            catch (Exception)
+            {
+                return StatusCode(500, new
                 {
-                    anomalies++;
-                }
+                    message =
+                        "One or more telemetry readings failed to process. " +
+                        "Check the API logs and queue status."
+                });
             }
 
             processingStopwatch.Stop();
 
-            sensor.LastSeen =
-                DateTime.UtcNow;
+            int stored = storedRecords.Length;
+
+            int anomalies = storedRecords.Count(
+                record => record.IsAnomaly);
+
+            sensor.LastSeen = DateTime.UtcNow;
+
+            // Reflect the most recent reading's anomaly state,
+            // rather than any anomaly that occurred in the batch.
+            var latestRecord = storedRecords
+                .OrderByDescending(r => r.Timestamp)
+                .FirstOrDefault();
 
             sensor.HasActiveAnomaly =
-                anomalies > 0;
+                latestRecord?.IsAnomaly ?? false;
 
-            sensor.Status =
-                sensor.CalculateStatus();
+            sensor.Status = sensor.CalculateStatus();
 
             totalStopwatch.Stop();
 
+            var result = new TelemetryBatchResult
+            {
+                Generated = packets.Count,
+                Received = packets.Count,
+                Stored = stored,
+                AnomaliesDetected = anomalies,
 
-            var result =
-                new TelemetryBatchResult
-                {
-                    Generated =
-                        packets.Count,
+                GenerationTimeMs =
+                    generationStopwatch.Elapsed.TotalMilliseconds,
 
-                    Received =
-                        packets.Count,
+                ProcessingTimeMs =
+                    processingStopwatch.Elapsed.TotalMilliseconds,
 
-                    Stored =
-                        stored,
+                TotalTimeMs =
+                    totalStopwatch.Elapsed.TotalMilliseconds,
 
-                    AnomaliesDetected =
-                        anomalies,
+                LastReading =
+                    packets.LastOrDefault()?.Value,
 
-                    GenerationTimeMs =
-                        generationStopwatch
-                            .Elapsed
-                            .TotalMilliseconds,
-
-                    ProcessingTimeMs =
-                        processingStopwatch
-                            .Elapsed
-                            .TotalMilliseconds,
-
-                    TotalTimeMs =
-                        totalStopwatch
-                            .Elapsed
-                            .TotalMilliseconds,
-
-                    LastReading =
-                        packets.LastOrDefault()?.Value,
-
-                    MetricName =
-                        request.MetricName,
-
-                    Unit =
-                        request.Unit
-                };
+                MetricName = request.MetricName,
+                Unit = request.Unit
+            };
 
             return Ok(result);
         }
+
     }
 }

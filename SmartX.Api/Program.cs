@@ -1,6 +1,5 @@
 using System.Text.Json.Serialization;
 using SmartX.Api.Repositories;
-using SmartX.Api.Repositories;
 using SmartX.Api.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -41,6 +40,15 @@ builder.Services
 // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddSingleton<CommandProcessingService>();
+builder.Services.AddSingleton<DeviceLookupService>();
+builder.Services.AddSingleton<TelemetryTimelineService>();
+builder.Services.AddSingleton<UniqueAlertService>();
+builder.Services.AddSingleton<PredictiveActionService>();
+builder.Services.AddSingleton<TelemetryQueueService>();
+builder.Services.AddHostedService<TelemetryBackgroundWorker>();
+
+
 
 var app = builder.Build();
 
