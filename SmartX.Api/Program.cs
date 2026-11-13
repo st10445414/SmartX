@@ -47,8 +47,8 @@ builder.Services.AddSingleton<UniqueAlertService>();
 builder.Services.AddSingleton<PredictiveActionService>();
 builder.Services.AddSingleton<TelemetryQueueService>();
 builder.Services.AddHostedService<TelemetryBackgroundWorker>();
-
-
+builder.Services.AddSingleton<MeshGraphService>();
+builder.Services.AddScoped<TelemetryAvlService>();
 
 var app = builder.Build();
 

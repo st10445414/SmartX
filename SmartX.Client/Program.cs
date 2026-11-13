@@ -69,6 +69,24 @@ builder.Services.AddHttpClient<
     });
 
 
+builder.Services.AddHttpClient<
+    IMeshTopologyApiService,
+    MeshTopologyApiService>(client =>
+    {
+        client.BaseAddress =
+            new Uri("https://localhost:7179/");
+    });
+
+
+builder.Services.AddHttpClient<
+    ITelemetryHistoryApiService,
+    TelemetryHistoryApiService>(client =>
+    {
+        client.BaseAddress =
+            new Uri("https://localhost:7179/");
+    });
+
+
 var app = builder.Build();
 
 // Configure the HTTP request pipeline.

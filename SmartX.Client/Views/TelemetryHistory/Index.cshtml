@@ -1,0 +1,197 @@
+﻿@model SmartX.Client.Models.TelemetryHistoryViewModel
+@using System.Text.Json
+
+@{
+    ViewData["Title"] = "Historical Telemetry";
+
+    // Collect field names from the actual API response.
+    var columns = Model.Readings
+        .Where(r => r.ValueKind == JsonValueKind.Object)
+        .SelectMany(r => r.EnumerateObject()
+            .Select(p => p.Name))
+        .Distinct()
+        .ToList();
+}
+
+<div class="container py-4">
+
+    <!-- Page heading -->
+    <div class="mb-4">
+        <h2>Historical Sensor Telemetry</h2>
+
+        <p class="text-muted">
+            Search historical sensor readings using
+            an AVL Tree indexed by timestamp.
+        </p>
+    </div>
+
+    <!-- Search form -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">
+            <h5 class="mb-0">
+                Search Historical Readings
+            </h5>
+        </div>
+
+        <div class="card-body">
+
+            <form asp-controller="TelemetryHistory"
+                  asp-action="Index"
+                  method="get">
+
+                <div class="row g-3">
+
+                    <div class="col-md-3">
+                        <label class="form-label"
+                               for="sensorId">
+                            Sensor ID
+                        </label>
+
+                        <input type="number"
+                               id="sensorId"
+                               name="sensorId"
+                               min="1"
+                               value="@(Model.SensorId > 0 ? Model.SensorId.ToString() : "")"
+                               class="form-control"
+                               placeholder="Enter sensor ID"
+                               required />
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label"
+                               for="startDate">
+                            Start Date & Time
+                        </label>
+
+                        <input type="datetime-local"
+                               id="startDate"
+                               name="startDate"
+                               value="@Model.StartDate.ToString("yyyy-MM-ddTHH:mm")"
+                               class="form-control"
+                               required />
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label"
+                               for="endDate">
+                            End Date & Time
+                        </label>
+
+                        <input type="datetime-local"
+                               id="endDate"
+                               name="endDate"
+                               value="@Model.EndDate.ToString("yyyy-MM-ddTHH:mm")"
+                               class="form-control"
+                               required />
+                    </div>
+
+                    <div class="col-md-1 d-flex align-items-end">
+                        <button type="submit"
+                                class="btn btn-primary w-100">
+                            Search
+                        </button>
+                    </div>
+
+                </div>
+            </form>
+
+        </div>
+    </div>
+
+    <!-- Error message -->
+    @if (!string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="alert alert-danger">
+            @Model.ErrorMessage
+        </div>
+    }
+
+    <!-- Search results -->
+    @if (Model.HasSearched &&
+        string.IsNullOrEmpty(Model.ErrorMessage))
+    {
+        <div class="row g-3 mb-4">
+
+            <div class="col-md-6">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h6>Historical Readings Found</h6>
+                        <h3>@Model.TotalReadings</h3>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-6">
+                <div class="card shadow-sm">
+                    <div class="card-body">
+                        <h6>Search Algorithm</h6>
+                        <h3>@Model.Algorithm</h3>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+
+        @if (Model.Readings.Any())
+        {
+            <div class="card shadow-sm mb-4">
+
+                <div class="card-header">
+                    <h5 class="mb-0">
+                        Sensor @Model.SensorId -
+                        Historical Readings
+                    </h5>
+                </div>
+
+                <div class="card-body table-responsive">
+
+                    <table class="table table-striped table-bordered">
+
+                        <thead>
+                            <tr>
+                                @foreach (var column in columns)
+                                {
+                                    <th>@column</th>
+                                }
+                            </tr>
+                        </thead>
+
+                        <tbody>
+                            @foreach (var reading in Model.Readings)
+                            {
+                                <tr>
+                                    @foreach (var column in columns)
+                                    {
+                                        <td>
+                                            @if (reading.ValueKind == JsonValueKind.Object &&
+                                                                        reading.TryGetProperty(column, out var value))
+                                            {
+                                                @(value.ValueKind == JsonValueKind.Null
+                                                                            ? "-"
+                                                                            : value.ToString())
+                                                        }
+                                            else
+                                            {
+                                                <text>-</text>
+                                            }
+                                        </td>
+                                    }
+                                </tr>
+                            }
+                        </tbody>
+
+                    </table>
+
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="alert alert-info">
+                No historical readings were found for
+                this sensor during the selected period.
+            </div>
+        }
+    }
+
+</div>
